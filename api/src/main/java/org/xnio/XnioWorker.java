@@ -28,7 +28,7 @@ import java.util.Set;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
+import com.conversantmedia.util.concurrent.DisruptorBlockingQueue;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -110,7 +110,7 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
             workerName = "XNIO-" + seq.getAndIncrement();
         }
         name = workerName;
-        taskQueue = new LinkedBlockingQueue<Runnable>();
+        taskQueue = new DisruptorBlockingQueue<Runnable>(50000);
         this.coreSize = optionMap.get(Options.WORKER_TASK_CORE_THREADS, 4);
         final boolean markThreadAsDaemon = optionMap.get(Options.THREAD_DAEMON, false);
         final int threadCount = optionMap.get(Options.WORKER_TASK_MAX_THREADS, 16);
