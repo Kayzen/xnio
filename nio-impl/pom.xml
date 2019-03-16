@@ -44,6 +44,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.agrona</groupId>
+            <artifactId>agrona</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>com.conversantmedia</groupId>
             <artifactId>disruptor</artifactId>
             <scope>provided</scope>
