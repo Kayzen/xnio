@@ -76,8 +76,7 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
 
   @Override
   public T take() throws InterruptedException {
-    System.out.println("UnImplemented Function : take");
-    return null;
+    return poll();
   }
 
   @Override
@@ -178,7 +177,7 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
   private OneToOneConcurrentArrayQueue<T> getReadQueue() {
     Long tid = Thread.currentThread().getId();
     if (!readThreadMap.contains(tid)) {
-      readThreadMap.put(tid, readSeq.getAndIncrement());
+      readThreadMap.putIfAbsent(tid, readSeq.getAndIncrement());
       System.out.println("assigned readThreadMap " + tid + " : " + readThreadMap.get(tid));
     }
     return oneToOneConcurrentArrayQueues.get(
@@ -189,7 +188,7 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
   private OneToOneConcurrentArrayQueue<T> getWriteQueue() {
     Long tid = Thread.currentThread().getId();
     if (!writeThreadMap.contains(tid)) {
-      writeThreadMap.put(tid, writeSeq.getAndIncrement());
+      writeThreadMap.putIfAbsent(tid, writeSeq.getAndIncrement());
       System.out.println("assigned writeThreadMap " + tid + " : " + writeThreadMap.get(tid));
     }
     return oneToOneConcurrentArrayQueues.get(
