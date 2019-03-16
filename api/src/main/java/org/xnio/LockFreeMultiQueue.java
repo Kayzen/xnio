@@ -177,7 +177,9 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
   private OneToOneConcurrentArrayQueue<T> getReadQueue() {
     Long tid = Thread.currentThread().getId();
     if (!readThreadMap.contains(tid)) {
-      readThreadMap.putIfAbsent(tid, readSeq.getAndIncrement());
+      synchronized (readThreadMap) {
+        readThreadMap.put(tid, readSeq.getAndIncrement());
+      }
       System.out.println("assigned readThreadMap " + tid + " : " + readThreadMap.get(tid));
     }
     return oneToOneConcurrentArrayQueues.get(
@@ -188,7 +190,9 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
   private OneToOneConcurrentArrayQueue<T> getWriteQueue() {
     Long tid = Thread.currentThread().getId();
     if (!writeThreadMap.contains(tid)) {
-      writeThreadMap.putIfAbsent(tid, writeSeq.getAndIncrement());
+      synchronized (writeThreadMap) {
+        writeThreadMap.put(tid, writeSeq.getAndIncrement());
+      }
       System.out.println("assigned writeThreadMap " + tid + " : " + writeThreadMap.get(tid));
     }
     return oneToOneConcurrentArrayQueues.get(
