@@ -2,7 +2,9 @@ package org.xnio;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -15,12 +17,14 @@ import org.agrona.concurrent.OneToOneConcurrentArrayQueue;
 public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
 
   private ArrayList<OneToOneConcurrentArrayQueue<T> > oneToOneConcurrentArrayQueues;
-  private final ConcurrentHashMap<Long, Integer> readThreadMap;
+  private Map<Long, Integer> readThreadMap;
   private AtomicInteger readSeq;
-  private final ConcurrentHashMap<Long, Integer> writeThreadMap;
+  private Map<Long, Integer> writeThreadMap;
   private AtomicInteger writeSeq;
+  private int capacity;
 
   public LockFreeMultiQueue(int capacity) {
+    this.capacity = capacity;
     oneToOneConcurrentArrayQueues = new ArrayList<>();
     for (int c = 0; c < capacity; c++) {
       oneToOneConcurrentArrayQueues.add(
@@ -169,6 +173,10 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
           System.out.println("Assigned readThreadMap " + tid + " : " + index);
         }
       }
+      if(readThreadMap.size() == capacity) {
+        readThreadMap = new HashMap<>(readThreadMap);
+        System.out.println("Read thread map copied");
+      }
     }
     return oneToOneConcurrentArrayQueues.get(index);
   }
@@ -183,6 +191,10 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
           index = writeThreadMap.get(tid);
           System.out.println("Assigned writeThreadMap " + tid + " : " + index);
         }
+      }
+      if(writeThreadMap.size() == capacity) {
+        writeThreadMap = new HashMap<>(writeThreadMap);
+        System.out.println("Write thread map copied");
       }
     }
     return oneToOneConcurrentArrayQueues.get(index);
