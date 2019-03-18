@@ -14,11 +14,15 @@ import org.agrona.concurrent.OneToOneConcurrentArrayQueue;
  */
 public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
 
+  private static AtomicInteger seq = new AtomicInteger(0);
+
   private ArrayList<OneToOneConcurrentArrayQueue<T> > oneToOneConcurrentArrayQueues;
-  private ConcurrentHashMap<Long, Integer> readThreadMap;
+  private final ConcurrentHashMap<Long, Integer> readThreadMap;
   private AtomicInteger readSeq;
-  private ConcurrentHashMap<Long, Integer> writeThreadMap;
+  private final ConcurrentHashMap<Long, Integer> writeThreadMap;
   private AtomicInteger writeSeq;
+
+  private int seqID;
 
   public LockFreeMultiQueue(int capacity) {
     oneToOneConcurrentArrayQueues = new ArrayList<>();
@@ -31,6 +35,7 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
     writeThreadMap = new ConcurrentHashMap<>();
     readSeq = new AtomicInteger(0);
     writeSeq = new AtomicInteger(0);
+    seqID = seq.incrementAndGet();
   }
 
   @Override
@@ -180,7 +185,7 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
       synchronized (readThreadMap) {
         if(!readThreadMap.contains(tid)) {
           readThreadMap.put(tid, readSeq.getAndIncrement());
-          System.out.println("assigned readThreadMap " + tid + " : " + readThreadMap.get(tid));
+          System.out.println(seqID + " assigned readThreadMap " + tid + " : " + readThreadMap.get(tid));
         }
       }
     }
@@ -195,7 +200,7 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
       synchronized (writeThreadMap) {
         if(!writeThreadMap.contains(tid)) {
           writeThreadMap.put(tid, writeSeq.getAndIncrement());
-          System.out.println("assigned writeThreadMap " + tid + " : " + writeThreadMap.get(tid));
+          System.out.println(seqID + " assigned writeThreadMap " + tid + " : " + writeThreadMap.get(tid));
         }
       }
     }
