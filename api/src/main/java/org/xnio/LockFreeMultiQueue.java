@@ -14,18 +14,13 @@ import org.agrona.concurrent.OneToOneConcurrentArrayQueue;
  */
 public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
 
-  private static AtomicInteger seq = new AtomicInteger(0);
-
   private ArrayList<OneToOneConcurrentArrayQueue<T> > oneToOneConcurrentArrayQueues;
   private final ConcurrentHashMap<Long, Integer> readThreadMap;
   private AtomicInteger readSeq;
   private final ConcurrentHashMap<Long, Integer> writeThreadMap;
   private AtomicInteger writeSeq;
 
-  private int seqID;
-
   public LockFreeMultiQueue(int capacity) {
-    System.out.println("Given capacity : " + capacity);
     oneToOneConcurrentArrayQueues = new ArrayList<>();
     for (int c = 0; c < capacity; c++) {
       oneToOneConcurrentArrayQueues.add(
@@ -36,7 +31,6 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
     writeThreadMap = new ConcurrentHashMap<>();
     readSeq = new AtomicInteger(0);
     writeSeq = new AtomicInteger(0);
-    seqID = seq.incrementAndGet();
   }
 
   @Override
@@ -71,13 +65,12 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
 
   @Override
   public void put(T t) throws InterruptedException {
-    System.out.println("UnImplemented Function : put");
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean offer(T t, long timeout, TimeUnit unit) throws InterruptedException {
-    System.out.println("UnImplemented Function : offer");
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -87,97 +80,82 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
 
   @Override
   public T poll(long timeout, TimeUnit unit) throws InterruptedException {
-    System.out.println("UnImplemented Function : poll");
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public int remainingCapacity() {
-    System.out.println("UnImplemented Function : remainingCapacity");
-    return 0;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean remove(Object o) {
-    System.out.println("UnImplemented Function : remove(o)");
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean containsAll(Collection<?> c) {
-    System.out.println("UnImplemented Function : containsAll");
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean addAll(Collection<? extends T> c) {
-    System.out.println("UnImplemented Function : addAll");
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean removeAll(Collection<?> c) {
-    System.out.println("UnImplemented Function : removeAll");
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean retainAll(Collection<?> c) {
-    System.out.println("UnImplemented Function : retainAll");
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public void clear() {
-    System.out.println("UnImplemented Function : clear");
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public int size() {
-    System.out.println("UnImplemented Function : size");
-    return 0;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean isEmpty() {
-    System.out.println("UnImplemented Function : isEmpty");
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean contains(Object o) {
-    System.out.println("UnImplemented Function : contains");
-    return false;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public Iterator<T> iterator() {
-    System.out.println("UnImplemented Function : iterator");
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public Object[] toArray() {
-    System.out.println("UnImplemented Function : toArray()");
-    return new Object[0];
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public <T1> T1[] toArray(T1[] a) {
-    System.out.println("UnImplemented Function : toArray(a)");
-    return null;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public int drainTo(Collection<? super T> c) {
-    System.out.println("UnImplemented Function : drainTo(c)");
-    return 0;
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public int drainTo(Collection<? super T> c, int maxElements) {
-    System.out.println("UnImplemented Function : drainTo(c, m");
-    return 0;
+    throw new UnsupportedOperationException();
   }
 
   private OneToOneConcurrentArrayQueue<T> getReadQueue() {
@@ -186,7 +164,7 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
       synchronized (readThreadMap) {
         if(!readThreadMap.containsKey(tid)) {
           readThreadMap.put(tid, readSeq.getAndIncrement());
-          System.out.println(seqID + " assigned readThreadMap " + tid + " : " + readThreadMap.get(tid));
+          System.out.println("Assigned readThreadMap " + tid + " : " + readThreadMap.get(tid));
         }
       }
     }
@@ -201,7 +179,7 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
       synchronized (writeThreadMap) {
         if(!writeThreadMap.containsKey(tid)) {
           writeThreadMap.put(tid, writeSeq.getAndIncrement());
-          System.out.println(seqID + " assigned writeThreadMap " + tid + " : " + writeThreadMap.get(tid));
+          System.out.println("Assigned writeThreadMap " + tid + " : " + writeThreadMap.get(tid));
         }
       }
     }
