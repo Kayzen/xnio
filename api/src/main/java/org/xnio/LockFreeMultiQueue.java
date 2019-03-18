@@ -25,6 +25,7 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
   private int seqID;
 
   public LockFreeMultiQueue(int capacity) {
+    System.out.println("Given capacity : " + capacity);
     oneToOneConcurrentArrayQueues = new ArrayList<>();
     for (int c = 0; c < capacity; c++) {
       oneToOneConcurrentArrayQueues.add(
@@ -181,9 +182,9 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
 
   private OneToOneConcurrentArrayQueue<T> getReadQueue() {
     Long tid = Thread.currentThread().getId();
-    if (!readThreadMap.contains(tid)) {
+    if (!readThreadMap.containsKey(tid)) {
       synchronized (readThreadMap) {
-        if(!readThreadMap.contains(tid)) {
+        if(!readThreadMap.containsKey(tid)) {
           readThreadMap.put(tid, readSeq.getAndIncrement());
           System.out.println(seqID + " assigned readThreadMap " + tid + " : " + readThreadMap.get(tid));
         }
@@ -196,9 +197,9 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
 
   private OneToOneConcurrentArrayQueue<T> getWriteQueue() {
     Long tid = Thread.currentThread().getId();
-    if (!writeThreadMap.contains(tid)) {
+    if (!writeThreadMap.containsKey(tid)) {
       synchronized (writeThreadMap) {
-        if(!writeThreadMap.contains(tid)) {
+        if(!writeThreadMap.containsKey(tid)) {
           writeThreadMap.put(tid, writeSeq.getAndIncrement());
           System.out.println(seqID + " assigned writeThreadMap " + tid + " : " + writeThreadMap.get(tid));
         }
