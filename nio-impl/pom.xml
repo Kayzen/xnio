@@ -44,6 +44,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>net.openhft</groupId>
+            <artifactId>affinity</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>org.agrona</groupId>
             <artifactId>agrona</artifactId>
             <scope>provided</scope>

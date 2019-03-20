@@ -9,6 +9,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import net.openhft.affinity.AffinityLock;
 import org.agrona.concurrent.OneToOneConcurrentArrayQueue;
 
 /**
@@ -170,7 +171,8 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
         if(!readThreadMap.containsKey(tid)) {
           readThreadMap.put(tid, readSeq.getAndIncrement());
           index = readThreadMap.get(tid);
-          System.out.println("Assigned readThreadMap " + tid + " : " + index);
+          AffinityLock affinityLock = AffinityLock.acquireCore(true);
+          System.out.println("Assigned readThreadMap " + tid + " : " + index + " : " + affinityLock.cpuId());
         }
       }
       if(readThreadMap.size() == capacity) {
@@ -189,7 +191,8 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
         if(!writeThreadMap.containsKey(tid)) {
           writeThreadMap.put(tid, writeSeq.getAndIncrement());
           index = writeThreadMap.get(tid);
-          System.out.println("Assigned writeThreadMap " + tid + " : " + index);
+          AffinityLock affinityLock = AffinityLock.acquireCore(true);
+          System.out.println("Assigned writeThreadMap " + tid + " : " + index + " : " + affinityLock.cpuId());
         }
       }
       if(writeThreadMap.size() == capacity) {

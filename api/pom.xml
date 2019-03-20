@@ -41,6 +41,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>net.openhft</groupId>
+            <artifactId>affinity</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>com.conversantmedia</groupId>
             <artifactId>disruptor</artifactId>
             <scope>provided</scope>
