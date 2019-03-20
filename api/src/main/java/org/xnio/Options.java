@@ -567,4 +567,9 @@ public final class Options {
      * thread affinity default false
      */
     public static final Option<Boolean> THREAD_AFFINITY = Option.simple(Options.class, "THREAD_AFFINITY", Boolean.class);
+
+    /**
+     * size of one2one lock free queue
+     */
+    public static final Option<Integer> QUEUE_SIZE = Option.simple(Options.class, "QUEUE_SIZE", Integer.class);
 }

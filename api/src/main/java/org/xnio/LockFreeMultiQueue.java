@@ -29,13 +29,13 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
   private int capacity;
   private boolean threadAffinity;
 
-  public LockFreeMultiQueue(int capacity, boolean threadAffinity) {
-    this.capacity = capacity;
+  public LockFreeMultiQueue(int queueCount, boolean threadAffinity, int queueCapacity) {
+    this.capacity = queueCount;
     this.threadAffinity = threadAffinity;
     oneToOneConcurrentArrayQueues = new ArrayList<>();
     for (int c = 0; c < capacity; c++) {
       oneToOneConcurrentArrayQueues.add(
-          new OneToOneConcurrentArrayQueue<T>(10000)
+          new OneToOneConcurrentArrayQueue<T>(queueCapacity)
       );
     }
     readThreadMap = new ConcurrentHashMap<>();
