@@ -11,11 +11,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.openhft.affinity.AffinityLock;
 import org.agrona.concurrent.OneToOneConcurrentArrayQueue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created by raghuteja on 15/03/19.
  */
 public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
+
+  private static final Logger logger = LoggerFactory.getLogger(LockFreeMultiQueue.class);
 
   private ArrayList<OneToOneConcurrentArrayQueue<T> > oneToOneConcurrentArrayQueues;
   private Map<Long, Integer> readThreadMap;
@@ -23,9 +27,11 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
   private Map<Long, Integer> writeThreadMap;
   private AtomicInteger writeSeq;
   private int capacity;
+  private boolean threadAffinity;
 
-  public LockFreeMultiQueue(int capacity) {
+  public LockFreeMultiQueue(int capacity, boolean threadAffinity) {
     this.capacity = capacity;
+    this.threadAffinity = threadAffinity;
     oneToOneConcurrentArrayQueues = new ArrayList<>();
     for (int c = 0; c < capacity; c++) {
       oneToOneConcurrentArrayQueues.add(
@@ -171,13 +177,12 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
         if(!readThreadMap.containsKey(tid)) {
           readThreadMap.put(tid, readSeq.getAndIncrement());
           index = readThreadMap.get(tid);
-          AffinityLock affinityLock = AffinityLock.acquireCore(true);
-          System.out.println("Assigned readThreadMap " + tid + " : " + index + " : " + affinityLock.cpuId());
+          acquireAndLogIfRequired(tid, readThreadMap);
         }
       }
       if(readThreadMap.size() == capacity) {
         readThreadMap = new HashMap<>(readThreadMap);
-        System.out.println("Read thread map copied");
+        logger.info("Read thread map copied");
       }
     }
     return oneToOneConcurrentArrayQueues.get(index);
@@ -191,15 +196,28 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
         if(!writeThreadMap.containsKey(tid)) {
           writeThreadMap.put(tid, writeSeq.getAndIncrement());
           index = writeThreadMap.get(tid);
-          AffinityLock affinityLock = AffinityLock.acquireCore(true);
-          System.out.println("Assigned writeThreadMap " + tid + " : " + index + " : " + affinityLock.cpuId());
+          acquireAndLogIfRequired(tid, writeThreadMap);
         }
       }
       if(writeThreadMap.size() == capacity) {
         writeThreadMap = new HashMap<>(writeThreadMap);
-        System.out.println("Write thread map copied");
+        logger.info("Write thread map copied");
       }
     }
     return oneToOneConcurrentArrayQueues.get(index);
+  }
+
+  private void acquireAndLogIfRequired(Long tid, Map<Long, Integer> threadMap) {
+    if (threadAffinity) {
+      AffinityLock affinityLock = AffinityLock.acquireCore(true);
+      logger.info(
+          Thread.currentThread().getName() + " : Assigned readThreadMap thread id : " + tid
+              + " : queue id : " + threadMap.get(tid) + " : cpu id : " + affinityLock.cpuId());
+    }
+    else {
+      logger.info(
+          Thread.currentThread().getName() + " : Assigned readThreadMap thread id : " + tid
+              + " : queue id : " + threadMap.get(tid));
+    }
   }
 }

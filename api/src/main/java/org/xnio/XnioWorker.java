@@ -110,7 +110,10 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
             workerName = "XNIO-" + seq.getAndIncrement();
         }
         name = workerName;
-        taskQueue = new LockFreeMultiQueue<>(optionMap.get(Options.WORKER_TASK_MAX_THREADS, 16));
+        taskQueue = new LockFreeMultiQueue<>(
+            optionMap.get(Options.WORKER_TASK_MAX_THREADS, 16),
+            optionMap.get(Options.THREAD_AFFINITY, false)
+        );
         this.coreSize = optionMap.get(Options.WORKER_TASK_CORE_THREADS, 4);
         final boolean markThreadAsDaemon = optionMap.get(Options.THREAD_DAEMON, false);
         final int threadCount = optionMap.get(Options.WORKER_TASK_MAX_THREADS, 16);
