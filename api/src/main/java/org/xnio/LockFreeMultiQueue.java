@@ -28,6 +28,7 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
   private AtomicInteger writeSeq;
   private int capacity;
   private boolean threadAffinity;
+  private StringBuffer stringBuffer;
 
   public LockFreeMultiQueue(int queueCount, boolean threadAffinity, int queueCapacity) {
     this.capacity = queueCount;
@@ -42,6 +43,7 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
     writeThreadMap = new ConcurrentHashMap<>();
     readSeq = new AtomicInteger(0);
     writeSeq = new AtomicInteger(0);
+    stringBuffer = new StringBuffer();
   }
 
   @Override
@@ -177,7 +179,7 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
         if(!readThreadMap.containsKey(tid)) {
           readThreadMap.put(tid, readSeq.getAndIncrement());
           index = readThreadMap.get(tid);
-          acquireAndLogIfRequired(tid, readThreadMap);
+          acquireAndLogIfRequired(tid, false);
         }
       }
       if(readThreadMap.size() == capacity) {
@@ -196,23 +198,29 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
         if(!writeThreadMap.containsKey(tid)) {
           writeThreadMap.put(tid, writeSeq.getAndIncrement());
           index = writeThreadMap.get(tid);
-          acquireAndLogIfRequired(tid, writeThreadMap);
+          acquireAndLogIfRequired(tid, true);
         }
       }
       if(writeThreadMap.size() == capacity) {
         writeThreadMap = new HashMap<>(writeThreadMap);
         logger.info("Write thread map copied");
+        logger.info("REPLACE_XPS=( " + stringBuffer.toString() + ")");
       }
     }
     return oneToOneConcurrentArrayQueues.get(index);
   }
 
-  private void acquireAndLogIfRequired(Long tid, Map<Long, Integer> threadMap) {
+  private void acquireAndLogIfRequired(Long tid, boolean isWrite) {
+    Map<Long, Integer> threadMap = isWrite ? writeThreadMap : readThreadMap;
     if (threadAffinity) {
       AffinityLock affinityLock = AffinityLock.acquireCore(true);
       logger.info(
           Thread.currentThread().getName() + " : Assigned readThreadMap thread id : " + tid
               + " : queue id : " + threadMap.get(tid) + " : cpu id : " + affinityLock.cpuId());
+      if (isWrite) {
+        stringBuffer.append(affinityLock.cpuId());
+        stringBuffer.append(' ');
+      }
     }
     else {
       logger.info(
