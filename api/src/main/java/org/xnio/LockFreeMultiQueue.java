@@ -212,10 +212,11 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
 
   private void acquireAndLogIfRequired(Long tid, boolean isWrite) {
     Map<Long, Integer> threadMap = isWrite ? writeThreadMap : readThreadMap;
+    String mapType = isWrite ? "writeThreadMap" : "readThreadMap";
     if (threadAffinity) {
-      AffinityLock affinityLock = AffinityLock.acquireCore(true);
+      AffinityLock affinityLock = AffinityLock.acquireLock(true);
       logger.info(
-          Thread.currentThread().getName() + " : Assigned readThreadMap thread id : " + tid
+          Thread.currentThread().getName() + " : Assigned " + mapType + " thread id : " + tid
               + " : queue id : " + threadMap.get(tid) + " : cpu id : " + affinityLock.cpuId());
       if (isWrite) {
         stringBuffer.append(affinityLock.cpuId());
@@ -224,7 +225,7 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
     }
     else {
       logger.info(
-          Thread.currentThread().getName() + " : Assigned readThreadMap thread id : " + tid
+          Thread.currentThread().getName() + " : Assigned " + mapType + " thread id : " + tid
               + " : queue id : " + threadMap.get(tid));
     }
   }
