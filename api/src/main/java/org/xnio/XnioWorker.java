@@ -19,7 +19,6 @@
 
 package org.xnio;
 
-import com.conversantmedia.util.concurrent.DisruptorBlockingQueue;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -110,7 +109,11 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
             workerName = "XNIO-" + seq.getAndIncrement();
         }
         name = workerName;
-        taskQueue = new DisruptorBlockingQueue<Runnable>(optionMap.get(Options.QUEUE_SIZE, 10000));
+        taskQueue = new LockFreeMultiQueue<>(
+            optionMap.get(Options.WORKER_TASK_MAX_THREADS, 16),
+            optionMap.get(Options.THREAD_AFFINITY, false),
+            optionMap.get(Options.QUEUE_SIZE, 10000)
+        );
         this.coreSize = optionMap.get(Options.WORKER_TASK_CORE_THREADS, 4);
         final boolean markThreadAsDaemon = optionMap.get(Options.THREAD_DAEMON, false);
         final int threadCount = optionMap.get(Options.WORKER_TASK_MAX_THREADS, 16);

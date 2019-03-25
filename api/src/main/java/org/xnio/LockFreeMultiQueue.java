@@ -45,7 +45,7 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
     writeThreadMap = new ConcurrentHashMap<>();
     readSeq = new AtomicInteger(0);
     writeSeqIO = new AtomicInteger(0);
-    writeSeqAero = new AtomicInteger(3);
+    writeSeqAero = new AtomicInteger(8);
     stringBuffer = new StringBuffer();
     logQueueSizes();
   }
@@ -203,16 +203,16 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
         if(!writeThreadMap.containsKey(tid)) {
           if(Thread.currentThread().getName().contains("nioEventLoopGroup")) {
             writeThreadMap.put(tid, writeSeqAero.getAndIncrement());
-            writeSeqAero.compareAndSet(6, 4);
+            writeSeqAero.compareAndSet(12, 0);
           } else {
             writeThreadMap.put(tid, writeSeqIO.getAndIncrement());
-            writeSeqIO.compareAndSet(3, 0);
+            writeSeqIO.compareAndSet(8, 0);
           }
           index = writeThreadMap.get(tid);
           acquireAndLogIfRequired(tid, true);
         }
       }
-      if(writeThreadMap.size() == 5*capacity) {
+      if(writeThreadMap.size() == 2*capacity) {
         writeThreadMap = new HashMap<>(writeThreadMap);
         logger.info("Write thread map copied");
         logger.info("REPLACE_XPS=( " + stringBuffer.toString() + ")");
@@ -249,10 +249,8 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
           while(true) {
             try {
               Thread.sleep(QUEUE_SIZE_LOG_FREQUENCY);
-              for (int index = 0; index < manyToManyConcurrentArrayQueues.size(); index++) {
-                logger.info(
-                    "Current queue size " + index + " : " + manyToManyConcurrentArrayQueues
-                        .get(index).size());
+              for(int index = 0; index < manyToManyConcurrentArrayQueues.size(); index++) {
+                logger.info("Current queue size " + index + " : " +  manyToManyConcurrentArrayQueues.get(index).size());
               }
             } catch (InterruptedException e) {
               logger.error("QueueSize exception");
