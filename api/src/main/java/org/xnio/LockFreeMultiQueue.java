@@ -11,7 +11,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.openhft.affinity.AffinityLock;
 import org.agrona.concurrent.ManyToManyConcurrentArrayQueue;
-import org.agrona.concurrent.OneToOneConcurrentArrayQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +26,8 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
   private Map<Long, Integer> readThreadMap;
   private AtomicInteger readSeq;
   private Map<Long, Integer> writeThreadMap;
-  private AtomicInteger writeSeq;
+  private AtomicInteger writeSeqIO;
+  private AtomicInteger writeSeqAero;
   private int capacity;
   private boolean threadAffinity;
   private StringBuffer stringBuffer;
@@ -44,7 +44,8 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
     readThreadMap = new ConcurrentHashMap<>();
     writeThreadMap = new ConcurrentHashMap<>();
     readSeq = new AtomicInteger(0);
-    writeSeq = new AtomicInteger(0);
+    writeSeqIO = new AtomicInteger(0);
+    writeSeqAero = new AtomicInteger(8);
     stringBuffer = new StringBuffer();
     logQueueSizes();
   }
@@ -200,10 +201,15 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
     if (index == null) {
       synchronized (writeThreadMap) {
         if(!writeThreadMap.containsKey(tid)) {
-          writeThreadMap.put(tid, writeSeq.getAndIncrement());
+          if(Thread.currentThread().getName().contains("nioEventLoopGroup")) {
+            writeThreadMap.put(tid, writeSeqAero.getAndIncrement());
+            writeSeqAero.compareAndSet(12, 8);
+          } else {
+            writeThreadMap.put(tid, writeSeqIO.getAndIncrement());
+            writeSeqIO.compareAndSet(8, 0);
+          }
           index = writeThreadMap.get(tid);
           acquireAndLogIfRequired(tid, true);
-          writeSeq.compareAndSet(capacity, 0);
         }
       }
       if(writeThreadMap.size() == 2*capacity) {
@@ -211,7 +217,7 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
         logger.info("Write thread map copied");
         logger.info("REPLACE_XPS=( " + stringBuffer.toString() + ")");
       }
-    } 
+    }
     return manyToManyConcurrentArrayQueues.get(index);
   }
 
@@ -243,8 +249,12 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
           while(true) {
             try {
               Thread.sleep(QUEUE_SIZE_LOG_FREQUENCY);
-              for(int index = 0; index < manyToManyConcurrentArrayQueues.size(); index++) {
-                logger.info("Current queue size " + index + " : " +  manyToManyConcurrentArrayQueues.get(index).size());
+              if (logger.isDebugEnabled()) {
+                for (int index = 0; index < manyToManyConcurrentArrayQueues.size(); index++) {
+                  logger.info(
+                      "Current queue size " + index + " : " + manyToManyConcurrentArrayQueues
+                          .get(index).size());
+                }
               }
             } catch (InterruptedException e) {
               logger.error("QueueSize exception");
