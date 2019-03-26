@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.openhft.affinity.AffinityLock;
-import org.agrona.concurrent.OneToOneConcurrentArrayQueue;
+import org.agrona.concurrent.ManyToManyConcurrentArrayQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,12 +20,14 @@ import org.slf4j.LoggerFactory;
 public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
 
   private static final Logger logger = LoggerFactory.getLogger(LockFreeMultiQueue.class);
+  private static final int QUEUE_SIZE_LOG_FREQUENCY = 10000;
 
-  private ArrayList<OneToOneConcurrentArrayQueue<T> > oneToOneConcurrentArrayQueues;
+  private ArrayList<ManyToManyConcurrentArrayQueue<T>> manyToManyConcurrentArrayQueues;
   private Map<Long, Integer> readThreadMap;
   private AtomicInteger readSeq;
   private Map<Long, Integer> writeThreadMap;
-  private AtomicInteger writeSeq;
+  private AtomicInteger writeSeqIO;
+  private AtomicInteger writeSeqAero;
   private int capacity;
   private boolean threadAffinity;
   private StringBuffer stringBuffer;
@@ -33,17 +35,19 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
   public LockFreeMultiQueue(int queueCount, boolean threadAffinity, int queueCapacity) {
     this.capacity = queueCount;
     this.threadAffinity = threadAffinity;
-    oneToOneConcurrentArrayQueues = new ArrayList<>();
+    manyToManyConcurrentArrayQueues = new ArrayList<>();
     for (int c = 0; c < capacity; c++) {
-      oneToOneConcurrentArrayQueues.add(
-          new OneToOneConcurrentArrayQueue<T>(queueCapacity)
+      manyToManyConcurrentArrayQueues.add(
+          new ManyToManyConcurrentArrayQueue<T>(queueCapacity)
       );
     }
     readThreadMap = new ConcurrentHashMap<>();
     writeThreadMap = new ConcurrentHashMap<>();
     readSeq = new AtomicInteger(0);
-    writeSeq = new AtomicInteger(0);
+    writeSeqIO = new AtomicInteger(0);
+    writeSeqAero = new AtomicInteger(8);
     stringBuffer = new StringBuffer();
+    logQueueSizes();
   }
 
   @Override
@@ -171,7 +175,7 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
     throw new UnsupportedOperationException();
   }
 
-  private OneToOneConcurrentArrayQueue<T> getReadQueue() {
+  private ManyToManyConcurrentArrayQueue<T> getReadQueue() {
     Long tid = Thread.currentThread().getId();
     Integer index = readThreadMap.get(tid);
     if (index == null) {
@@ -180,6 +184,7 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
           readThreadMap.put(tid, readSeq.getAndIncrement());
           index = readThreadMap.get(tid);
           acquireAndLogIfRequired(tid, false);
+          readSeq.compareAndSet(capacity, 0);
         }
       }
       if(readThreadMap.size() == capacity) {
@@ -187,27 +192,33 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
         logger.info("Read thread map copied");
       }
     }
-    return oneToOneConcurrentArrayQueues.get(index);
+    return manyToManyConcurrentArrayQueues.get(index);
   }
 
-  private OneToOneConcurrentArrayQueue<T> getWriteQueue() {
+  private ManyToManyConcurrentArrayQueue<T> getWriteQueue() {
     Long tid = Thread.currentThread().getId();
     Integer index = writeThreadMap.get(tid);
     if (index == null) {
       synchronized (writeThreadMap) {
         if(!writeThreadMap.containsKey(tid)) {
-          writeThreadMap.put(tid, writeSeq.getAndIncrement());
+          if(Thread.currentThread().getName().contains("nioEventLoopGroup")) {
+            writeThreadMap.put(tid, writeSeqAero.getAndIncrement());
+            writeSeqAero.compareAndSet(12, 8);
+          } else {
+            writeThreadMap.put(tid, writeSeqIO.getAndIncrement());
+            writeSeqIO.compareAndSet(8, 0);
+          }
           index = writeThreadMap.get(tid);
           acquireAndLogIfRequired(tid, true);
         }
       }
-      if(writeThreadMap.size() == capacity) {
+      if(writeThreadMap.size() == 2*capacity) {
         writeThreadMap = new HashMap<>(writeThreadMap);
         logger.info("Write thread map copied");
         logger.info("REPLACE_XPS=( " + stringBuffer.toString() + ")");
       }
     }
-    return oneToOneConcurrentArrayQueues.get(index);
+    return manyToManyConcurrentArrayQueues.get(index);
   }
 
   private void acquireAndLogIfRequired(Long tid, boolean isWrite) {
@@ -228,5 +239,25 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
           Thread.currentThread().getName() + " : Assigned " + mapType + " thread id : " + tid
               + " : queue id : " + threadMap.get(tid));
     }
+  }
+
+  private void logQueueSizes() {
+    new Thread(
+      new Runnable() {
+        @Override
+        public void run() {
+          while(true) {
+            try {
+              Thread.sleep(QUEUE_SIZE_LOG_FREQUENCY);
+              for(int index = 0; index < manyToManyConcurrentArrayQueues.size(); index++) {
+                logger.info("Current queue size " + index + " : " +  manyToManyConcurrentArrayQueues.get(index).size());
+              }
+            } catch (InterruptedException e) {
+              logger.error("QueueSize exception");
+            }
+          }
+        }
+      }
+    ).start();
   }
 }
