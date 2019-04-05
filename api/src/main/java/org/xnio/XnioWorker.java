@@ -112,7 +112,8 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
         taskQueue = new LockFreeMultiQueue<>(
             optionMap.get(Options.WORKER_TASK_MAX_THREADS, 16),
             optionMap.get(Options.THREAD_AFFINITY, false),
-            optionMap.get(Options.QUEUE_SIZE, 10000)
+            optionMap.get(Options.QUEUE_SIZE, 10000),
+            optionMap.get(Options.AERO_THREAD_START_ID, 8)
         );
         this.coreSize = optionMap.get(Options.WORKER_TASK_CORE_THREADS, 4);
         final boolean markThreadAsDaemon = optionMap.get(Options.THREAD_DAEMON, false);

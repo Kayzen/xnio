@@ -31,10 +31,12 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
   private int capacity;
   private boolean threadAffinity;
   private StringBuffer stringBuffer;
+  private int aeroStartID;
 
-  public LockFreeMultiQueue(int queueCount, boolean threadAffinity, int queueCapacity) {
+  public LockFreeMultiQueue(int queueCount, boolean threadAffinity, int queueCapacity, int aeroStartID) {
     this.capacity = queueCount;
     this.threadAffinity = threadAffinity;
+    this.aeroStartID = aeroStartID;
     manyToManyConcurrentArrayQueues = new ArrayList<>();
     for (int c = 0; c < capacity; c++) {
       manyToManyConcurrentArrayQueues.add(
@@ -45,7 +47,7 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
     writeThreadMap = new ConcurrentHashMap<>();
     readSeq = new AtomicInteger(0);
     writeSeqIO = new AtomicInteger(0);
-    writeSeqAero = new AtomicInteger(8);
+    writeSeqAero = new AtomicInteger(aeroStartID);
     stringBuffer = new StringBuffer();
     logQueueSizes();
   }
@@ -203,10 +205,10 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
         if(!writeThreadMap.containsKey(tid)) {
           if(Thread.currentThread().getName().contains("nioEventLoopGroup")) {
             writeThreadMap.put(tid, writeSeqAero.getAndIncrement());
-            writeSeqAero.compareAndSet(12, 8);
+            writeSeqAero.compareAndSet(capacity/2, aeroStartID);
           } else {
             writeThreadMap.put(tid, writeSeqIO.getAndIncrement());
-            writeSeqIO.compareAndSet(8, 0);
+            writeSeqIO.compareAndSet(aeroStartID, 0);
           }
           index = writeThreadMap.get(tid);
           acquireAndLogIfRequired(tid, true);

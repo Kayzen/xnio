@@ -572,4 +572,9 @@ public final class Options {
      * size of one2one lock free queue
      */
     public static final Option<Integer> QUEUE_SIZE = Option.simple(Options.class, "QUEUE_SIZE", Integer.class);
+
+    /**
+     * aero thread start id
+     */
+    public static final Option<Integer> AERO_THREAD_START_ID = Option.simple(Options.class, "AERO_THREAD_START_ID", Integer.class);
 }
