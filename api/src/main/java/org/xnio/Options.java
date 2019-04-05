@@ -564,9 +564,14 @@ public final class Options {
     public static final Option<Integer> WATCHER_POLL_INTERVAL = Option.simple(Options.class, "WATCHER_POLL_INTERVAL", Integer.class);
 
     /**
-     * thread affinity default false
+     * thread affinity io default false
      */
-    public static final Option<Boolean> THREAD_AFFINITY = Option.simple(Options.class, "THREAD_AFFINITY", Boolean.class);
+    public static final Option<Boolean> THREAD_AFFINITY_IO = Option.simple(Options.class, "THREAD_AFFINITY_IO", Boolean.class);
+
+    /**
+     * thread affinity worker default false
+     */
+    public static final Option<Boolean> THREAD_AFFINITY_WORKER = Option.simple(Options.class, "THREAD_AFFINITY_WORKER", Boolean.class);
 
     /**
      * size of one2one lock free queue

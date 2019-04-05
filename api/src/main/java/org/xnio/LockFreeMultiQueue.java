@@ -29,13 +29,15 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
   private AtomicInteger writeSeqIO;
   private AtomicInteger writeSeqAero;
   private int capacity;
-  private boolean threadAffinity;
+  private boolean threadAffinityIO;
+  private boolean threadAffinityWorker;
   private StringBuffer stringBuffer;
   private int aeroStartID;
 
-  public LockFreeMultiQueue(int queueCount, boolean threadAffinity, int queueCapacity, int aeroStartID) {
+  public LockFreeMultiQueue(int queueCount, boolean threadAffinityIO, boolean threadAffinityWorker, int queueCapacity, int aeroStartID) {
     this.capacity = queueCount;
-    this.threadAffinity = threadAffinity;
+    this.threadAffinityIO = threadAffinityIO;
+    this.threadAffinityWorker = threadAffinityWorker;
     this.aeroStartID = aeroStartID;
     manyToManyConcurrentArrayQueues = new ArrayList<>();
     for (int c = 0; c < capacity; c++) {
@@ -226,15 +228,20 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
   private void acquireAndLogIfRequired(Long tid, boolean isWrite) {
     Map<Long, Integer> threadMap = isWrite ? writeThreadMap : readThreadMap;
     String mapType = isWrite ? "writeThreadMap" : "readThreadMap";
-    if (threadAffinity) {
+
+    if(isWrite && threadAffinityIO) {
       AffinityLock affinityLock = AffinityLock.acquireLock(true);
       logger.info(
           Thread.currentThread().getName() + " : Assigned " + mapType + " thread id : " + tid
               + " : queue id : " + threadMap.get(tid) + " : cpu id : " + affinityLock.cpuId());
-      if (isWrite) {
-        stringBuffer.append(affinityLock.cpuId());
-        stringBuffer.append(' ');
-      }
+      stringBuffer.append(affinityLock.cpuId());
+      stringBuffer.append(' ');
+    }
+    else if((!isWrite) && threadAffinityWorker) {
+      AffinityLock affinityLock = AffinityLock.acquireLock(true);
+      logger.info(
+          Thread.currentThread().getName() + " : Assigned " + mapType + " thread id : " + tid
+              + " : queue id : " + threadMap.get(tid) + " : cpu id : " + affinityLock.cpuId());
     }
     else {
       logger.info(

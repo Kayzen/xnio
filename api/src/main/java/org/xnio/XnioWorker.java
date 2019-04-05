@@ -111,7 +111,8 @@ public abstract class XnioWorker extends AbstractExecutorService implements Conf
         name = workerName;
         taskQueue = new LockFreeMultiQueue<>(
             optionMap.get(Options.WORKER_TASK_MAX_THREADS, 16),
-            optionMap.get(Options.THREAD_AFFINITY, false),
+            optionMap.get(Options.THREAD_AFFINITY_IO, false),
+            optionMap.get(Options.THREAD_AFFINITY_WORKER, false),
             optionMap.get(Options.QUEUE_SIZE, 10000),
             optionMap.get(Options.AERO_THREAD_START_ID, 8)
         );
