@@ -207,7 +207,7 @@ public class LockFreeMultiQueue<T> implements BlockingQueue<T> {
         if(!writeThreadMap.containsKey(tid)) {
           if(Thread.currentThread().getName().contains("nioEventLoopGroup")) {
             writeThreadMap.put(tid, writeSeqAero.getAndIncrement());
-            writeSeqAero.compareAndSet(capacity/2, aeroStartID);
+            writeSeqAero.compareAndSet(capacity, aeroStartID);
           } else {
             writeThreadMap.put(tid, writeSeqIO.getAndIncrement());
             writeSeqIO.compareAndSet(aeroStartID, 0);
