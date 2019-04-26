@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 
 import org.jboss.logging.Logger;
+import org.slf4j.LoggerFactory;
 import org.xnio.ChannelListener;
 import org.xnio.ChannelListeners;
 import org.xnio.IoUtils;
@@ -56,6 +57,7 @@ import org.xnio.channels.UnsupportedOptionException;
 import org.xnio.management.XnioServerMXBean;
 
 final class QueuedNioTcpServer extends AbstractNioChannel<QueuedNioTcpServer> implements AcceptingChannel<StreamConnection>, AcceptListenerSettable<QueuedNioTcpServer> {
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(QueuedNioTcpServer.class);
     private static final String FQCN = QueuedNioTcpServer.class.getName();
 
     private volatile ChannelListener<? super QueuedNioTcpServer> acceptListener;
@@ -507,6 +509,7 @@ final class QueuedNioTcpServer extends AbstractNioChannel<QueuedNioTcpServer> im
                 final WorkerThread ioThread = worker.getIoThread(hash);
                 ok = true;
                 final int number = ioThread.getNumber();
+                logger.info("Undertow I/O Thread id : " + number + " : " + localAddress + " : " + remoteAddress);
                 final BlockingQueue<SocketChannel> queue = acceptQueues.get(number);
                 queue.add(accepted);
                 // todo: only execute if necessary
