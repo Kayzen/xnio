@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
@@ -507,7 +506,7 @@ final class QueuedNioTcpServer extends AbstractNioChannel<QueuedNioTcpServer> im
                 socket.setTcpNoDelay(tcpNoDelay != 0);
                 final int sendBuffer = this.sendBuffer;
                 if (sendBuffer > 0) socket.setSendBufferSize(sendBuffer);
-                final WorkerThread ioThread = worker.getIoThread(ThreadLocalRandom.current().nextInt());
+                final WorkerThread ioThread = worker.getIoThread(hash);
                 ok = true;
                 final int number = ioThread.getNumber();
                 logger.info("Undertow I/O Thread id : " + number + " : " + localAddress + " : " + remoteAddress);
