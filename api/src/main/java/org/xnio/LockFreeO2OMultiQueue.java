@@ -7,7 +7,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.openhft.affinity.AffinityLock;
@@ -16,11 +15,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Created by raghuteja on 17/05/19.
+ * Created by raghuteja on 14/05/19.
  */
-public class LockFreeRandomMultiQueue<T> implements BlockingQueue<T> {
+public class LockFreeO2OMultiQueue<T> implements BlockingQueue<T> {
 
-  private static final Logger logger = LoggerFactory.getLogger(LockFreeRandomMultiQueue.class);
+  private static final Logger logger = LoggerFactory.getLogger(LockFreeO2OMultiQueue.class);
   private static final int QUEUE_SIZE_LOG_FREQUENCY = 10000;
 
   private ArrayList<ManyToManyConcurrentArrayQueue<T>> manyToManyConcurrentArrayQueues;
@@ -32,7 +31,7 @@ public class LockFreeRandomMultiQueue<T> implements BlockingQueue<T> {
   private boolean threadAffinity;
 
 
-  public LockFreeRandomMultiQueue(int queueCount, boolean threadAffinity, int queueCapacity) {
+  public LockFreeO2OMultiQueue(int queueCount, boolean threadAffinity, int queueCapacity) {
     this.capacity = queueCount;
     this.threadAffinity = threadAffinity;
     manyToManyConcurrentArrayQueues = new ArrayList<>();
@@ -194,7 +193,22 @@ public class LockFreeRandomMultiQueue<T> implements BlockingQueue<T> {
   }
 
   private ManyToManyConcurrentArrayQueue<T> getWriteQueue() {
-    return manyToManyConcurrentArrayQueues.get(ThreadLocalRandom.current().nextInt(capacity));
+    Long tid = Thread.currentThread().getId();
+    Integer index = writeThreadMap.get(tid);
+    if (index == null) {
+      synchronized (writeThreadMap) {
+        if(!writeThreadMap.containsKey(tid)) {
+          writeThreadMap.put(tid, writeSeq.getAndIncrement());
+          index = writeThreadMap.get(tid);
+          acquireAndLogIfRequired(tid, true);
+        }
+      }
+      if(writeThreadMap.size() == capacity) {
+        writeThreadMap = new HashMap<>(writeThreadMap);
+        logger.info("Write thread map copied");
+      }
+    }
+    return manyToManyConcurrentArrayQueues.get(index);
   }
 
   private void acquireAndLogIfRequired(Long tid, boolean isWrite) {
