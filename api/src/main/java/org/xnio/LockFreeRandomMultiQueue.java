@@ -140,7 +140,8 @@ public class LockFreeRandomMultiQueue<T> implements BlockingQueue<T> {
 
   @Override
   public boolean isEmpty() {
-    throw new UnsupportedOperationException();
+    // this function will be called in case of failure only
+    return true;
   }
 
   @Override
@@ -165,7 +166,8 @@ public class LockFreeRandomMultiQueue<T> implements BlockingQueue<T> {
 
   @Override
   public int drainTo(Collection<? super T> c) {
-    throw new UnsupportedOperationException();
+    // this function will be called in case of failure only
+    return 0;
   }
 
   @Override
@@ -187,7 +189,7 @@ public class LockFreeRandomMultiQueue<T> implements BlockingQueue<T> {
       }
       if(readThreadMap.size() == capacity) {
         readThreadMap = new HashMap<>(readThreadMap);
-        logger.info("Read thread map copied");
+        System.out.println("Read thread map copied");
       }
     }
     return manyToManyConcurrentArrayQueues.get(index);
@@ -202,12 +204,12 @@ public class LockFreeRandomMultiQueue<T> implements BlockingQueue<T> {
     String mapType = isWrite ? "writeThreadMap" : "readThreadMap";
     if (threadAffinity) {
       AffinityLock affinityLock = AffinityLock.acquireLock(true);
-      logger.info(
+      System.out.println(
           Thread.currentThread().getName() + " : Assigned " + mapType + " thread id : " + tid
               + " : queue id : " + threadMap.get(tid) + " : cpu id : " + affinityLock.cpuId());
     }
     else {
-      logger.info(
+      System.out.println(
           Thread.currentThread().getName() + " : Assigned " + mapType + " thread id : " + tid
               + " : queue id : " + threadMap.get(tid));
     }
@@ -222,10 +224,10 @@ public class LockFreeRandomMultiQueue<T> implements BlockingQueue<T> {
               try {
                 Thread.sleep(QUEUE_SIZE_LOG_FREQUENCY);
                 for(int index = 0; index < manyToManyConcurrentArrayQueues.size(); index++) {
-                  logger.info("Current queue size " + index + " : " +  manyToManyConcurrentArrayQueues.get(index).size());
+                  System.out.println("Current queue size " + index + " : " +  manyToManyConcurrentArrayQueues.get(index).size());
                 }
               } catch (InterruptedException e) {
-                logger.error("QueueSize exception");
+                System.out.println("QueueSize exception");
               }
             }
           }
