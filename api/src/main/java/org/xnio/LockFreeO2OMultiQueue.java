@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.openhft.affinity.AffinityLock;
-import org.agrona.concurrent.ManyToManyConcurrentArrayQueue;
+import org.agrona.concurrent.OneToOneConcurrentArrayQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +22,7 @@ public class LockFreeO2OMultiQueue<T> implements BlockingQueue<T> {
   private static final Logger logger = LoggerFactory.getLogger(LockFreeO2OMultiQueue.class);
   private static final int QUEUE_SIZE_LOG_FREQUENCY = 10000;
 
-  private ArrayList<ManyToManyConcurrentArrayQueue<T>> manyToManyConcurrentArrayQueues;
+  private ArrayList<OneToOneConcurrentArrayQueue<T>> manyToManyConcurrentArrayQueues;
   private Map<Long, Integer> readThreadMap;
   private AtomicInteger readSeq;
   private Map<Long, Integer> writeThreadMap;
@@ -37,7 +37,7 @@ public class LockFreeO2OMultiQueue<T> implements BlockingQueue<T> {
     manyToManyConcurrentArrayQueues = new ArrayList<>();
     for (int c = 0; c < capacity; c++) {
       manyToManyConcurrentArrayQueues.add(
-          new ManyToManyConcurrentArrayQueue<T>(queueCapacity)
+          new OneToOneConcurrentArrayQueue<T>(queueCapacity)
       );
     }
     readThreadMap = new ConcurrentHashMap<>();
@@ -172,7 +172,7 @@ public class LockFreeO2OMultiQueue<T> implements BlockingQueue<T> {
     throw new UnsupportedOperationException();
   }
 
-  private ManyToManyConcurrentArrayQueue<T> getReadQueue() {
+  private OneToOneConcurrentArrayQueue<T> getReadQueue() {
     Long tid = Thread.currentThread().getId();
     Integer index = readThreadMap.get(tid);
     if (index == null) {
@@ -186,13 +186,13 @@ public class LockFreeO2OMultiQueue<T> implements BlockingQueue<T> {
       }
       if(readThreadMap.size() == capacity) {
         readThreadMap = new HashMap<>(readThreadMap);
-        logger.info("Read thread map copied");
+        System.out.println("Read thread map copied");
       }
     }
     return manyToManyConcurrentArrayQueues.get(index);
   }
 
-  private ManyToManyConcurrentArrayQueue<T> getWriteQueue() {
+  private OneToOneConcurrentArrayQueue<T> getWriteQueue() {
     Long tid = Thread.currentThread().getId();
     Integer index = writeThreadMap.get(tid);
     if (index == null) {
@@ -205,7 +205,7 @@ public class LockFreeO2OMultiQueue<T> implements BlockingQueue<T> {
       }
       if(writeThreadMap.size() == capacity) {
         writeThreadMap = new HashMap<>(writeThreadMap);
-        logger.info("Write thread map copied");
+        System.out.println("Write thread map copied");
       }
     }
     return manyToManyConcurrentArrayQueues.get(index);
@@ -216,12 +216,12 @@ public class LockFreeO2OMultiQueue<T> implements BlockingQueue<T> {
     String mapType = isWrite ? "writeThreadMap" : "readThreadMap";
     if (threadAffinity) {
       AffinityLock affinityLock = AffinityLock.acquireLock(true);
-      logger.info(
+      System.out.println(
           Thread.currentThread().getName() + " : Assigned " + mapType + " thread id : " + tid
               + " : queue id : " + threadMap.get(tid) + " : cpu id : " + affinityLock.cpuId());
     }
     else {
-      logger.info(
+      System.out.println(
           Thread.currentThread().getName() + " : Assigned " + mapType + " thread id : " + tid
               + " : queue id : " + threadMap.get(tid));
     }
@@ -236,10 +236,10 @@ public class LockFreeO2OMultiQueue<T> implements BlockingQueue<T> {
               try {
                 Thread.sleep(QUEUE_SIZE_LOG_FREQUENCY);
                 for(int index = 0; index < manyToManyConcurrentArrayQueues.size(); index++) {
-                  logger.info("Current queue size " + index + " : " +  manyToManyConcurrentArrayQueues.get(index).size());
+                  System.out.println("Current queue size " + index + " : " +  manyToManyConcurrentArrayQueues.get(index).size());
                 }
               } catch (InterruptedException e) {
-                logger.error("QueueSize exception");
+                System.out.println("QueueSize exception");
               }
             }
           }

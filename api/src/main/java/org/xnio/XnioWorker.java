@@ -19,6 +19,10 @@
 
 package org.xnio;
 
+import static java.security.AccessController.doPrivileged;
+import static org.xnio.IoUtils.safeClose;
+import static org.xnio._private.Messages.msg;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -53,10 +57,6 @@ import org.xnio.conduits.DeflatingStreamSinkConduit;
 import org.xnio.conduits.InflatingStreamSourceConduit;
 import org.xnio.conduits.StreamSinkChannelWrappingConduit;
 import org.xnio.conduits.StreamSourceChannelWrappingConduit;
-
-import static java.security.AccessController.doPrivileged;
-import static org.xnio.IoUtils.safeClose;
-import static org.xnio._private.Messages.msg;
 
 /**
  * A worker for I/O channel notification.

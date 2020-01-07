@@ -11,7 +11,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.openhft.affinity.AffinityLock;
-import org.agrona.concurrent.ManyToManyConcurrentArrayQueue;
+import org.agrona.concurrent.ManyToOneConcurrentArrayQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +23,7 @@ public class LockFreeRandomMultiQueue<T> implements BlockingQueue<T> {
   private static final Logger logger = LoggerFactory.getLogger(LockFreeRandomMultiQueue.class);
   private static final int QUEUE_SIZE_LOG_FREQUENCY = 10000;
 
-  private ArrayList<ManyToManyConcurrentArrayQueue<T>> manyToManyConcurrentArrayQueues;
+  private ArrayList<ManyToOneConcurrentArrayQueue<T>> manyToManyConcurrentArrayQueues;
   private Map<Long, Integer> readThreadMap;
   private AtomicInteger readSeq;
   private Map<Long, Integer> writeThreadMap;
@@ -38,7 +38,7 @@ public class LockFreeRandomMultiQueue<T> implements BlockingQueue<T> {
     manyToManyConcurrentArrayQueues = new ArrayList<>();
     for (int c = 0; c < capacity; c++) {
       manyToManyConcurrentArrayQueues.add(
-          new ManyToManyConcurrentArrayQueue<T>(queueCapacity)
+          new ManyToOneConcurrentArrayQueue<T>(queueCapacity)
       );
     }
     readThreadMap = new ConcurrentHashMap<>();
@@ -175,7 +175,7 @@ public class LockFreeRandomMultiQueue<T> implements BlockingQueue<T> {
     throw new UnsupportedOperationException();
   }
 
-  private ManyToManyConcurrentArrayQueue<T> getReadQueue() {
+  private ManyToOneConcurrentArrayQueue<T> getReadQueue() {
     Long tid = Thread.currentThread().getId();
     Integer index = readThreadMap.get(tid);
     if (index == null) {
@@ -195,7 +195,7 @@ public class LockFreeRandomMultiQueue<T> implements BlockingQueue<T> {
     return manyToManyConcurrentArrayQueues.get(index);
   }
 
-  private ManyToManyConcurrentArrayQueue<T> getWriteQueue() {
+  private ManyToOneConcurrentArrayQueue<T> getWriteQueue() {
     return manyToManyConcurrentArrayQueues.get(ThreadLocalRandom.current().nextInt(capacity));
   }
 
